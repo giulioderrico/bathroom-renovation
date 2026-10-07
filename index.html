@@ -205,10 +205,98 @@ button{-webkit-tap-highlight-color:transparent}
   .legend{top:calc(65px + env(safe-area-inset-top,0px));max-height:55dvh}
 }
 
+
+/* ==========================================================
+   MOBILE V2: model first.
+   On phones the configurator is completely off-canvas until
+   the user explicitly opens it. No fixed configuration card
+   sits in front of the 3D scene on initial load.
+   ========================================================== */
+.config-fab,.sheet-backdrop{display:none}
+
+@media (max-width:700px){
+  /* The 3D model is the primary surface. */
+  #scene{z-index:0}
+
+  /* Do not leave the collapsed configurator visible over the scene. */
+  .panel{
+    z-index:30;
+    left:0;right:0;bottom:0;top:auto;
+    width:100%;max-width:none;
+    max-height:min(78dvh,680px);
+    border-left:0;border-right:0;border-bottom:0;
+    border-radius:22px 22px 0 0;
+    padding:0;
+    opacity:0;visibility:hidden;pointer-events:none;
+    transform:translateY(calc(100% + 24px));
+    transition:transform .24s ease,opacity .18s ease,visibility 0s linear .24s;
+  }
+  .panel[data-open="true"]{
+    max-height:min(78dvh,680px);
+    opacity:1;visibility:visible;pointer-events:auto;
+    transform:translateY(0);
+    transition:transform .24s ease,opacity .18s ease;
+  }
+  .panel[data-open="false"] .panel-body{display:block}
+  .panel[data-open="true"] .panel-body{
+    display:block;
+    max-height:calc(min(78dvh,680px) - 62px);
+    overflow-y:auto;overflow-x:hidden;
+    padding:4px 14px calc(18px + env(safe-area-inset-bottom,0px));
+    -webkit-overflow-scrolling:touch;
+  }
+  .panel-head{
+    min-height:62px;
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+  }
+  .panel h1{font-size:1.06rem}
+  .sheet-toggle{display:inline-flex}
+
+  /* Single unobtrusive entry point to the configurator. */
+  .config-fab{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    position:fixed;z-index:20;
+    right:calc(14px + env(safe-area-inset-right,0px));
+    bottom:calc(14px + env(safe-area-inset-bottom,0px));
+    min-height:48px;padding:0 16px;
+    border:1.5px solid var(--cobalt);border-radius:999px;
+    background:var(--panel);color:var(--ink);
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+    box-shadow:0 8px 26px rgba(20,34,74,.18);
+    font:600 .86rem/1 'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+    touch-action:manipulation;
+  }
+  .config-fab::before{content:'⚙';font-size:1.05rem;line-height:1}
+  .config-fab[aria-expanded="true"]{opacity:0;pointer-events:none}
+
+  /* Backdrop exists only while the sheet is open. */
+  .sheet-backdrop{
+    position:fixed;inset:0;z-index:25;
+    background:rgba(6,12,30,.28);
+    opacity:0;visibility:hidden;pointer-events:none;
+    transition:opacity .18s ease,visibility 0s linear .18s;
+  }
+  .sheet-backdrop[data-open="true"]{
+    display:block;opacity:1;visibility:visible;pointer-events:auto;
+    transition:opacity .18s ease;
+  }
+
+  /* Materials should not occupy a fixed card on top of the model on phones. */
+  .legend{display:none}
+
+  /* Camera shortcuts stay lightweight and remain usable. */
+  .mobile-viewbar{z-index:15}
+  #controlsPanel[data-open="true"] ~ .mobile-viewbar{opacity:0;pointer-events:none;transform:translateY(-8px)}
+}
+
 </style>
 </head>
 <body>
 <div id="scene" aria-label="3D model of the bathroom concept"></div>
+
+<div class="sheet-backdrop" id="sheetBackdrop" data-open="false" aria-hidden="true"></div>
+<button class="config-fab" id="configFab" type="button" aria-expanded="false" aria-controls="controlsPanel">Configura</button>
 
 <section class="panel" id="controlsPanel" data-open="false">
   <div class="panel-head">
@@ -1088,18 +1176,36 @@ resize();
 /* ---------- mobile controls ---------- */
 const controlsPanel=document.getElementById('controlsPanel');
 const controlsToggle=document.getElementById('controlsToggle');
+const configFab=document.getElementById('configFab');
+const sheetBackdrop=document.getElementById('sheetBackdrop');
 const legend=document.getElementById('legend');
 function setControlsOpen(open){
-  if(!controlsPanel||!controlsToggle)return;
-  controlsPanel.dataset.open=open?'true':'false';
-  controlsToggle.setAttribute('aria-expanded',open?'true':'false');
-  controlsToggle.querySelector('span:first-child').textContent=open?'Close':'Options';
-  if(open&&legend)legend.open=false;
+  if(!controlsPanel)return;
+  const isMobile=MOBILE_MQ.matches;
+  const next=isMobile?!!open:true;
+  controlsPanel.dataset.open=next?'true':'false';
+  if(controlsToggle){
+    controlsToggle.setAttribute('aria-expanded',next?'true':'false');
+    const label=controlsToggle.querySelector('span:first-child');
+    if(label)label.textContent=next?'Chiudi':'Opzioni';
+  }
+  if(configFab){
+    configFab.setAttribute('aria-expanded',next?'true':'false');
+    configFab.setAttribute('aria-hidden',(!isMobile).toString());
+  }
+  if(sheetBackdrop){
+    sheetBackdrop.dataset.open=(isMobile&&next)?'true':'false';
+    sheetBackdrop.setAttribute('aria-hidden',(isMobile&&next?'false':'true'));
+  }
+  if(next&&legend)legend.open=false;
 }
-if(controlsToggle){controlsToggle.addEventListener('click',()=>setControlsOpen(controlsPanel.dataset.open!=='true'));}
-if(legend){legend.addEventListener('toggle',()=>{if(legend.open&&MOBILE_MQ.matches)setControlsOpen(false);});}
-MOBILE_MQ.addEventListener?.('change',e=>{if(!e.matches)setControlsOpen(true);else setControlsOpen(false);resize();});
-if(!MOBILE_MQ.matches)setControlsOpen(true);
+if(configFab)configFab.addEventListener('click',()=>setControlsOpen(true));
+if(controlsToggle)controlsToggle.addEventListener('click',()=>setControlsOpen(false));
+if(sheetBackdrop)sheetBackdrop.addEventListener('click',()=>setControlsOpen(false));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&MOBILE_MQ.matches)setControlsOpen(false);});
+if(legend)legend.addEventListener('toggle',()=>{if(legend.open&&MOBILE_MQ.matches)setControlsOpen(false);});
+MOBILE_MQ.addEventListener?.('change',()=>{setControlsOpen(false);resize();});
+setControlsOpen(false);
 
 /* ---------- materials legend ---------- */
 function crop(c,sx,sy,sw,sh){const o=cv(96,96);o.getContext('2d').drawImage(c,sx,sy,sw,sh,0,0,96,96);return o.toDataURL();}
