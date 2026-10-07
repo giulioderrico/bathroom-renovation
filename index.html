@@ -75,14 +75,152 @@ button:focus-visible, summary:focus-visible{outline:3px solid var(--lemon); outl
   .panel p{font-size:.82rem; margin-bottom:10px}
   .legend{left:10px; right:10px; width:auto; max-width:none; max-height:45vh}
 }
+
+
+/* ==========================================================
+   MOBILE-FIRST INTERACTION LAYER
+   Keeps the 3D canvas full-screen and turns the configurator
+   into a bottom sheet on phones. Desktop keeps the original UI.
+   ========================================================== */
+html,body{width:100%;min-height:100%;overscroll-behavior:none}
+#scene{width:100vw;height:100dvh;min-height:100svh}
+.panel,.legend,.mobile-viewbar{z-index:10}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.panel-title-wrap{min-width:0}
+.panel-body{margin-top:10px}
+.sheet-toggle{display:none;border:0;background:transparent;color:var(--cobalt);font:inherit;font-weight:600;cursor:pointer}
+.mobile-viewbar{display:none}
+button{-webkit-tap-highlight-color:transparent}
+
+@media (max-width:700px){
+  body{height:100dvh;min-height:100svh;overflow:hidden}
+  #scene{inset:0;height:100dvh}
+
+  /* Camera shortcuts remain available even when the options sheet is closed. */
+  .mobile-viewbar{
+    display:flex;position:fixed;
+    top:calc(10px + env(safe-area-inset-top,0px));
+    left:calc(10px + env(safe-area-inset-left,0px));
+    right:calc(10px + env(safe-area-inset-right,0px));
+    gap:7px;padding:7px;
+    overflow-x:auto;overflow-y:hidden;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+    box-shadow:0 6px 24px rgba(20,34,74,.10);
+    transition:opacity .18s ease,transform .18s ease;
+  }
+  .mobile-viewbar::-webkit-scrollbar{display:none}
+  .mobile-viewbar button{
+    flex:0 0 auto;min-height:42px;padding:0 13px;
+    border:1.5px solid var(--cobalt);border-radius:11px;
+    background:transparent;color:var(--ink);font:inherit;font-size:.78rem;
+    white-space:nowrap;touch-action:manipulation;
+  }
+  .mobile-viewbar button[aria-pressed="true"]{background:var(--cobalt);color:var(--on-cobalt)}
+
+  /* Bottom sheet */
+  .panel{
+    left:calc(10px + env(safe-area-inset-left,0px));
+    right:calc(10px + env(safe-area-inset-right,0px));
+    top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px));
+    width:auto;max-width:none;
+    padding:0;border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 10px 36px rgba(20,34,74,.18);
+    transition:max-height .22s ease,transform .22s ease;
+  }
+  .panel-head{align-items:center;padding:11px 12px 11px 14px;min-height:58px}
+  .panel-title-wrap{display:flex;align-items:center;gap:9px;min-width:0}
+  .panel h1{font-size:1.02rem;line-height:1.15;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .panel p{display:none}
+  .sheet-toggle{
+    display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;
+    min-height:38px;padding:0 11px;
+    border:1.5px solid var(--cobalt);border-radius:11px;
+    background:transparent;color:var(--ink);font-size:.78rem;
+    touch-action:manipulation;
+  }
+  .sheet-toggle .chevron{display:inline-block;font-size:1rem;transition:transform .2s ease}
+  .panel[data-open="true"] .sheet-toggle .chevron{transform:rotate(180deg)}
+  .panel[data-open="false"] .panel-body{display:none}
+  .panel[data-open="true"]{max-height:min(72dvh,620px)}
+  .panel[data-open="true"] .panel-body{
+    display:block;margin:0;padding:4px 14px 16px;
+    max-height:calc(min(72dvh,620px) - 58px);
+    overflow-y:auto;overflow-x:hidden;
+    overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  }
+  #controlsPanel[data-open="true"] ~ .mobile-viewbar{opacity:0;pointer-events:none;transform:translateY(-8px)}
+
+  /* Touch targets and 2-column control groups. */
+  .layout,
+  .layout.ceil,
+  .layout.ceil.arch,
+  .layout.ceil.tiling,
+  .layout.ceil.vcol{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;margin:0 0 12px;
+  }
+  .layout.ceil .lbl{
+    grid-column:1/-1;min-width:0;padding:4px 2px 0;
+    font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  }
+  .layout button,
+  .layout.ceil button,
+  .layout.ceil.tiling button,
+  .layout.ceil.vcol button{
+    min-height:46px;padding:7px 8px;border-radius:11px;font-size:.8rem;
+    touch-action:manipulation;
+  }
+  .layout button small{font-size:.68rem;margin-top:3px}
+  .views{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .views button{min-height:46px;border-radius:11px;font-size:.78rem;touch-action:manipulation}
+
+  /* Materials becomes a compact card below the camera bar. */
+  .legend{
+    left:auto;right:calc(10px + env(safe-area-inset-right,0px));
+    top:calc(69px + env(safe-area-inset-top,0px));bottom:auto;
+    width:auto;max-width:calc(100vw - 20px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));
+    max-height:52dvh;padding:9px 12px;border-radius:13px;
+    box-shadow:0 6px 24px rgba(20,34,74,.10);
+  }
+  .legend[open]{width:min(360px,calc(100vw - 20px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)))}
+  .legend summary{font-size:.88rem;line-height:1.2;touch-action:manipulation}
+  .mat{grid-template-columns:42px 1fr;gap:10px;margin-top:10px}
+  .mat img{width:42px;height:42px}
+  .mat b{font-size:.82rem}.mat span{font-size:.74rem}
+}
+
+@media (max-width:380px){
+  .mobile-viewbar button{padding:0 10px;font-size:.74rem}
+  .panel h1{font-size:.94rem}
+  .sheet-toggle{padding:0 9px}
+}
+
+@media (orientation:landscape) and (max-height:520px){
+  .panel[data-open="true"]{max-height:84dvh}
+  .panel[data-open="true"] .panel-body{max-height:calc(84dvh - 56px)}
+  .mobile-viewbar{left:calc(58px + env(safe-area-inset-left,0px));right:calc(58px + env(safe-area-inset-right,0px))}
+  .legend{top:calc(65px + env(safe-area-inset-top,0px));max-height:55dvh}
+}
+
 </style>
 </head>
 <body>
 <div id="scene" aria-label="3D model of the bathroom concept"></div>
 
-<section class="panel">
-  <h1>Bathroom renovation</h1>
-  <p>Drag to look around, pinch or scroll to zoom.</p>
+<section class="panel" id="controlsPanel" data-open="false">
+  <div class="panel-head">
+    <div class="panel-title-wrap">
+      <h1>Bathroom renovation</h1>
+      <p>Drag to look around, pinch or scroll to zoom.</p>
+    </div>
+    <button class="sheet-toggle" id="controlsToggle" type="button" aria-expanded="false" aria-controls="controlsBody">
+      <span>Options</span><span class="chevron" aria-hidden="true">⌃</span>
+    </button>
+  </div>
+  <div class="panel-body" id="controlsBody">
   <div class="layout" role="group" aria-label="Layout option">
     <button data-layout="bidet" aria-pressed="true">WC + bidet<small>78 cm shower, 82 cm vanity</small></button>
     <button data-layout="nobidet" aria-pressed="false">No bidet<small>80 cm shower, 120 cm vanity</small></button>
@@ -142,7 +280,19 @@ button:focus-visible, summary:focus-visible{outline:3px solid var(--lemon); outl
     <button data-view="seat" aria-pressed="false">Shower seat</button>
     <button data-view="plan" aria-pressed="false">Plan</button>
   </div>
+  </div>
 </section>
+
+<nav class="mobile-viewbar views" aria-label="Quick camera views">
+  <button data-view="overview" aria-pressed="true">Overview</button>
+  <button data-view="door" aria-pressed="false">Door</button>
+  <button data-view="shower" aria-pressed="false">Shower</button>
+  <button data-view="storage" aria-pressed="false">Vanity</button>
+  <button data-view="wc" aria-pressed="false">WC</button>
+  <button data-view="corner" aria-pressed="false">Corner</button>
+  <button data-view="seat" aria-pressed="false">Seat</button>
+  <button data-view="plan" aria-pressed="false">Plan</button>
+</nav>
 
 <details class="legend" id="legend">
   <summary>Materials</summary>
@@ -168,7 +318,9 @@ const host=document.getElementById('scene');
 let renderer;
 try{ renderer=new THREE.WebGLRenderer({antialias:true,alpha:true}); }
 catch(e){ document.getElementById('err').style.display='grid'; return; }
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+const IS_COARSE=window.matchMedia('(pointer:coarse)').matches;
+const MOBILE_MQ=window.matchMedia('(max-width:700px)');
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,MOBILE_MQ.matches?1.5:2));
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.NoToneMapping; // true tile colours, no filmic wash-out
 renderer.shadowMap.enabled=false; // flat, even lighting: no cast shadows
@@ -871,10 +1023,18 @@ const VIEWS={
   ceiling:V([1.75,1.35,.75],[.35,2.35,.95],72),   // no button: the shower-ceiling switch glides here so the change is in view
 };
 const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-function setView(name,instant){const v=VIEWS[name],fp=camera.position.clone(),ft=controls.target.clone(),ff=camera.fov,dur=(instant||reduce)?0:800,t0=performance.now();
+let currentView='overview';
+function responsiveFov(base,name){
+  const mobile=MOBILE_MQ.matches,portrait=window.innerHeight>window.innerWidth;
+  if(!mobile)return base;
+  const extra=portrait?(name==='door'?14:name==='plan'?9:12):5;
+  return Math.min(90,base+extra);
+}
+function setView(name,instant){const v=VIEWS[name],fp=camera.position.clone(),ft=controls.target.clone(),ff=camera.fov,targetFov=responsiveFov(v.f,name),dur=(instant||reduce)?0:800,t0=performance.now();
+  currentView=name;
   document.querySelectorAll('.views button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===name));
   (function step(now){const k=dur?Math.min(1,(now-t0)/dur):1,e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
-    camera.position.lerpVectors(fp,v.p,e);controls.target.lerpVectors(ft,v.t,e);camera.fov=ff+(v.f-ff)*e;camera.updateProjectionMatrix();
+    camera.position.lerpVectors(fp,v.p,e);controls.target.lerpVectors(ft,v.t,e);camera.fov=ff+(targetFov-ff)*e;camera.updateProjectionMatrix();
     if(k<1)requestAnimationFrame(step);})(performance.now());}
 document.querySelectorAll('.views button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 const VIEW_SETS={
@@ -913,9 +1073,33 @@ function setLayout(name){layout=name;const NB=name==='nobidet';buildRoom(NB);Obj
 document.querySelectorAll('.layout button[data-layout]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.layout!==layout)setLayout(b.dataset.layout);}));
 camera.position.copy(VIEWS.overview.p);controls.target.copy(VIEWS.overview.t);setView('overview',true);
 
-function resize(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
-window.addEventListener('resize',resize);resize();
+function resize(){
+  const w=host.clientWidth,h=host.clientHeight;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,MOBILE_MQ.matches?1.5:2));
+  renderer.setSize(w,h,false);camera.aspect=w/h;
+  if(VIEWS[currentView])camera.fov=responsiveFov(VIEWS[currentView].f,currentView);
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',resize,{passive:true});
+if(window.visualViewport)window.visualViewport.addEventListener('resize',resize,{passive:true});
+resize();
 (function loop(){controls.update();if(doorG){doorG.visible=camera.position.z>0.02;ceilG.visible=camera.position.y<H;}renderer.render(world,camera);requestAnimationFrame(loop);})();
+
+/* ---------- mobile controls ---------- */
+const controlsPanel=document.getElementById('controlsPanel');
+const controlsToggle=document.getElementById('controlsToggle');
+const legend=document.getElementById('legend');
+function setControlsOpen(open){
+  if(!controlsPanel||!controlsToggle)return;
+  controlsPanel.dataset.open=open?'true':'false';
+  controlsToggle.setAttribute('aria-expanded',open?'true':'false');
+  controlsToggle.querySelector('span:first-child').textContent=open?'Close':'Options';
+  if(open&&legend)legend.open=false;
+}
+if(controlsToggle){controlsToggle.addEventListener('click',()=>setControlsOpen(controlsPanel.dataset.open!=='true'));}
+if(legend){legend.addEventListener('toggle',()=>{if(legend.open&&MOBILE_MQ.matches)setControlsOpen(false);});}
+MOBILE_MQ.addEventListener?.('change',e=>{if(!e.matches)setControlsOpen(true);else setControlsOpen(false);resize();});
+if(!MOBILE_MQ.matches)setControlsOpen(true);
 
 /* ---------- materials legend ---------- */
 function crop(c,sx,sy,sw,sh){const o=cv(96,96);o.getContext('2d').drawImage(c,sx,sy,sw,sh,0,0,96,96);return o.toDataURL();}
